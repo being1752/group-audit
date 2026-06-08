@@ -1,0 +1,84 @@
+# Group Audit 服务配置示例
+# 复制此文件为 config.yaml，填入你的 API Key 后即可使用
+# config.yaml 已加入 .gitignore，不会被上传到 GitHub
+
+log:
+  # 日志输出到哪个文件（支持相对路径或绝对路径）。
+  # 设为 ""（空字符串）时只打印到终端，不写文件。
+  # 设为 "logs/group-audit.log" 时，日志同时写入该文件和终端。
+  file: "logs/group-audit.log"
+  # 日志详细程度：debug（最详细，适合排查问题）> info（日常）> warn > error（仅错误）
+  level: "info"
+
+api:
+  # 后端接口服务的地址（不含路径部分）。
+  # 程序会在此基础上拼接具体接口路径，例如自动拼接 /ai/groups/by/date 拉取群聊列表。
+  # 生产环境需要替换成你们后端服务的真实地址。
+  base_url: "http://api.ufutx.net/mock/2673/go/api/app"
+
+ai:
+  # AI 大模型的接口地址。
+  # 只要是兼容 OpenAI Chat Completions 格式的都可以用，例如：
+  #   DeepSeek: https://api.deepseek.com/v1
+  #   本地 Ollama: http://localhost:11434/v1
+  #   阿里 Qwen: https://dashscope.aliyuncs.com/compatible-mode/v1
+  base_url: "https://api.deepseek.com/v1"
+
+  # 调用 AI 接口的身份凭证（API Key）。
+  # 使用本地模型（如 Ollama）时可以填任意字符串。
+  # ⚠ 请替换成你自己的 Key，不要直接使用示例值
+  api_key: "sk-your-api-key-here"
+
+  # 使用哪个模型来分析聊天记录（需与 AI 平台上的模型名一致）。
+  model: "deepseek-chat"
+
+  # 每秒最多向 AI 发起多少次请求。
+  # 设为 5 表示每秒最多 5 个 Worker 同时请求 AI，避免短时间内把 AI 接口打崩。
+  rps: 5
+
+worker:
+  # 同时用多少个 Worker 来处理群聊（每个 Worker 是一个 Goroutine）。
+  # 假设 count=20，系统会同时处理最多 20 个群聊；设为 1 就是一个一个排队处理。
+  count: 20
+
+  # 临时存放待处理群聊任务的队列大小。
+  # Scheduler（调度器）一次性拉回所有群聊 ID，先放进这个队列排队，
+  # Worker 处理完一个就从队列里取下一个。
+  # 建议设为 >= 一天最多有多少个活跃群聊，保证队列不会满。
+  buffer_size: 1000
+
+  # 用户发消息后，服务人员多久没回复就算"响应超时"（单位：分钟）。
+  # 设为 5.0 表示超过 5 分钟才回复就记一次警告。
+  response_timeout_minutes: 5.0
+
+  # 每次调用 AI 分析时，最多传多少条聊天消息给 AI。
+  # 超出这个数量的群聊，只保留开头和末尾各一半发送给 AI。
+  # 设为 0 表示不限制（全部发送）。
+  max_messages: 60
+
+cron:
+  # 每天什么时间自动执行一次质检，格式：分 时 日 月 周
+  # "0 1 * * *" = 每天凌晨 01:00 执行
+  # "0 */2 * * *" = 每 2 小时执行一次
+  # "0 9,18 * * 1-5" = 工作日 9:00 和 18:00 各跑一次
+  spec: "0 1 * * *"
+
+  # 设为 true：服务启动后立即执行一次质检（不管当前是否是 cron 设定的时间）。
+  # 调试阶段建议 true，上线后建议改成 false，让它按 cron 自动执行。
+  run_now: true
+
+mock:
+  # 设为 true：使用本地造假的群聊数据来测试流程，不会真实调用后端接口。
+  #   - 群聊列表和聊天记录：使用本地预设的 7 个测试场景
+  #   - 投诉/表扬提交：只打印到日志，不会真实写后端
+  #   - AI 分析：仍然使用真实 AI 接口（见 ai 配置区），不是假的
+  # 设为 false：连接真实后端接口进行生产级质检。
+  # 调试阶段建议 true，上线前改成 false。
+  enabled: true
+
+redline:
+  # 服务红线文档的文件路径（支持相对路径或绝对路径）。
+  # 系统启动时读取该文件内容注入给 AI，让 AI 对照文档检查聊天记录中有没有违规行为。
+  # 文档内容更新后重启服务即可生效，不需要改代码。
+  # 设为 ""（空字符串）可跳过红线违规检测。
+  path: "redline.md"
