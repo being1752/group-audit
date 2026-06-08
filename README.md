@@ -99,6 +99,7 @@ go run .
 | `worker.count` | int | `20` | 并发 Worker 数量 |
 | `worker.buffer_size` | int | `1000` | Channel 缓冲大小 |
 | `worker.response_timeout_minutes` | float64 | `5.0` | 响应超时阈值（分钟） |
+| `worker.max_messages` | int | `60` | LLM 单次分析最多传入的消息条数，超出时截断取首尾 |
 | `cron.spec` | string | `0 1 * * *` | Cron 表达式 |
 | `cron.run_now` | bool | `false` | 启动时立即触发一次 |
 | `mock.enabled` | bool | `true` | 是否启用 Mock 模式 |
