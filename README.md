@@ -92,6 +92,9 @@ go run .
 | `log.file` | string | `logs/group-audit.log` | 日志文件路径，`""` = 仅 stdout |
 | `log.level` | string | `info` | 日志级别：debug / info / warn / error |
 | `api.base_url` | string | 预设 Mock 地址 | 后端接口基础地址 |
+| `api.endpoints.groups_by_date` | string | `/ai/groups/by/date?date={date}` | 按日期拉取群聊 ID 列表接口 |
+| `api.endpoints.group_messages` | string | `/ai/groups/{group_id}/message?page={page}` | 分页拉取群聊消息接口 |
+| `api.endpoints.submit_complaint` | string | `/ai/complaint/groups/{group_id}` | 提交投诉/表扬接口 |
 | `ai.base_url` | string | DeepSeek API | AI 接口地址，兼容 Ollama |
 | `ai.api_key` | string | - | API 密钥 |
 | `ai.model` | string | `deepseek-v4-flash` | 模型名称 |
@@ -110,7 +113,7 @@ go run .
 每个群聊的任务执行经过 4 个步骤：
 
 ### Step 1 · 拉取
-调用 `GET /ai/groups/:id/message` 获取群聊全量消息。
+调用 `api.endpoints.groups_by_date` 获取群聊 ID，再调用 `api.endpoints.group_messages` 获取群聊全量消息。
 
 ### Step 2 · 定量分析（纯规则，无网络调用）
 
@@ -129,7 +132,7 @@ go run .
 | 红线违规 | 警告（改进提醒） | ai-系统 |
 
 ### Step 4 · 提交
-调用 `POST /ai/complaint/groups/:id` 逐条提交审核结论。提交失败不阻断其他条目。
+调用 `api.endpoints.submit_complaint` 逐条提交审核结论。提交失败不阻断其他条目。
 
 ## Mock 测试场景
 

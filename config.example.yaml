@@ -15,6 +15,12 @@ api:
   # 程序会在此基础上拼接具体接口路径，例如自动拼接 /ai/groups/by/date 拉取群聊列表。
   # 生产环境需要替换成你们后端服务的真实地址。
   base_url: "http://api.ufutx.net/mock/2673/go/api/app"
+  # 后端 3 个业务接口路径，支持相对路径或完整 URL。
+  # 可用占位符：{date}、{group_id}、{page}
+  endpoints:
+    groups_by_date: "/ai/groups/by/date?date={date}"
+    group_messages: "/ai/groups/{group_id}/message?page={page}"
+    submit_complaint: "/ai/complaint/groups/{group_id}"
 
 ai:
   # AI 大模型的接口地址。

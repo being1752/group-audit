@@ -92,8 +92,8 @@ func main() {
 		groupClient = &mock.GroupClient{}
 		complaintClient = &mock.ComplaintClient{}
 	} else {
-		groupClient = client.NewGroupClient(cfg.API.BaseURL)
-		complaintClient = client.NewComplaintClient(cfg.API.BaseURL)
+		groupClient = client.NewGroupClient(cfg.API.BaseURL, cfg.API.Endpoints)
+		complaintClient = client.NewComplaintClient(cfg.API.BaseURL, cfg.API.Endpoints)
 	}
 
 	aiProvider := ai.NewDeepSeekProvider(

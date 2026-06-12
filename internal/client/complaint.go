@@ -7,8 +7,11 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
+	"group-audit/internal/config"
 	"group-audit/internal/model"
 
 	"github.com/cenkalti/backoff/v4"
@@ -16,15 +19,17 @@ import (
 
 // ComplaintClient 封装对投诉/表扬接口的调用。
 type ComplaintClient struct {
-	baseURL    string
-	httpClient *http.Client
+	baseURL         string
+	submitComplaint string
+	httpClient      *http.Client
 }
 
 // NewComplaintClient 创建 ComplaintClient。
-func NewComplaintClient(baseURL string) *ComplaintClient {
+func NewComplaintClient(baseURL string, endpoints config.APIEndpointsConfig) *ComplaintClient {
 	return &ComplaintClient{
-		baseURL:    baseURL,
-		httpClient: &http.Client{Timeout: 30 * time.Second},
+		baseURL:         strings.TrimRight(baseURL, "/"),
+		submitComplaint: endpoints.SubmitComplaint,
+		httpClient:      &http.Client{Timeout: 30 * time.Second},
 	}
 }
 
@@ -43,8 +48,10 @@ func (c *ComplaintClient) Submit(ctx context.Context, groupID int, req model.Com
 	slog.Info("提交投诉", "group_id", groupID, "body", string(bodyBytes))
 
 	op := func() error {
-		url := fmt.Sprintf("%s/ai/complaint/groups/%d", c.baseURL, groupID)
-		httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(bodyBytes))
+		requestURL := c.buildURL(c.submitComplaint, map[string]string{
+			"group_id": url.PathEscape(fmt.Sprint(groupID)),
+		})
+		httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, requestURL, bytes.NewReader(bodyBytes))
 		if err != nil {
 			return backoff.Permanent(err)
 		}
@@ -67,4 +74,15 @@ func (c *ComplaintClient) Submit(ctx context.Context, groupID int, req model.Com
 
 	bo := newDefaultBackOff()
 	return backoff.Retry(op, backoff.WithContext(bo, ctx))
+}
+
+func (c *ComplaintClient) buildURL(template string, values map[string]string) string {
+	result := template
+	for key, value := range values {
+		result = strings.ReplaceAll(result, "{"+key+"}", value)
+	}
+	if strings.HasPrefix(result, "http://") || strings.HasPrefix(result, "https://") {
+		return result
+	}
+	return c.baseURL + "/" + strings.TrimLeft(result, "/")
 }

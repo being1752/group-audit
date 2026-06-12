@@ -40,6 +40,18 @@ type MockConfig struct {
 type APIConfig struct {
 	// BaseURL 后端接口基础地址，不含路径（例如 http://api.example.com/go/api/app）。
 	BaseURL string `yaml:"base_url"`
+	// Endpoints 后端接口路径配置。支持 {date}、{group_id}、{page} 占位符。
+	Endpoints APIEndpointsConfig `yaml:"endpoints"`
+}
+
+// APIEndpointsConfig 后端接口路径配置。
+type APIEndpointsConfig struct {
+	// GroupsByDate 拉取指定日期群聊 ID 列表的接口。
+	GroupsByDate string `yaml:"groups_by_date"`
+	// GroupMessages 分页拉取群聊消息的接口。
+	GroupMessages string `yaml:"group_messages"`
+	// SubmitComplaint 提交投诉/表扬结果的接口。
+	SubmitComplaint string `yaml:"submit_complaint"`
 }
 
 // AIConfig 大模型相关配置。

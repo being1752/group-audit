@@ -48,6 +48,11 @@ func defaultConfig() *Config {
 	return &Config{
 		API: APIConfig{
 			BaseURL: "http://api.ufutx.net/mock/2673/go/api/app",
+			Endpoints: APIEndpointsConfig{
+				GroupsByDate:    "/ai/groups/by/date?date={date}",
+				GroupMessages:   "/ai/groups/{group_id}/message?page={page}",
+				SubmitComplaint: "/ai/complaint/groups/{group_id}",
+			},
 		},
 		AI: AIConfig{
 			BaseURL: "https://api.deepseek.com/v1",
@@ -78,6 +83,15 @@ func defaultConfig() *Config {
 func validate(cfg *Config) error {
 	if cfg.API.BaseURL == "" {
 		return fmt.Errorf("config: api.base_url 不能为空")
+	}
+	if cfg.API.Endpoints.GroupsByDate == "" {
+		return fmt.Errorf("config: api.endpoints.groups_by_date 不能为空")
+	}
+	if cfg.API.Endpoints.GroupMessages == "" {
+		return fmt.Errorf("config: api.endpoints.group_messages 不能为空")
+	}
+	if cfg.API.Endpoints.SubmitComplaint == "" {
+		return fmt.Errorf("config: api.endpoints.submit_complaint 不能为空")
 	}
 	if cfg.AI.BaseURL == "" {
 		return fmt.Errorf("config: ai.base_url 不能为空")

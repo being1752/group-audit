@@ -5,8 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
+	"group-audit/internal/config"
 	"group-audit/internal/model"
 
 	"github.com/cenkalti/backoff/v4"
@@ -14,15 +17,19 @@ import (
 
 // GroupClient 封装对群聊相关后端接口的调用。
 type GroupClient struct {
-	baseURL    string
-	httpClient *http.Client
+	baseURL       string
+	groupsByDate  string
+	groupMessages string
+	httpClient    *http.Client
 }
 
 // NewGroupClient 创建 GroupClient。
-func NewGroupClient(baseURL string) *GroupClient {
+func NewGroupClient(baseURL string, endpoints config.APIEndpointsConfig) *GroupClient {
 	return &GroupClient{
-		baseURL:    baseURL,
-		httpClient: &http.Client{Timeout: 30 * time.Second},
+		baseURL:       strings.TrimRight(baseURL, "/"),
+		groupsByDate:  endpoints.GroupsByDate,
+		groupMessages: endpoints.GroupMessages,
+		httpClient:    &http.Client{Timeout: 30 * time.Second},
 	}
 }
 
@@ -36,8 +43,10 @@ func (c *GroupClient) FetchGroupIDsByDate(ctx context.Context, date string) ([]i
 
 	var result respBody
 	op := func() error {
-		url := fmt.Sprintf("%s/ai/groups/by/date?date=%s", c.baseURL, date)
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		requestURL := c.buildURL(c.groupsByDate, map[string]string{
+			"date": url.QueryEscape(date),
+		})
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
 		if err != nil {
 			return backoff.Permanent(err)
 		}
@@ -100,8 +109,11 @@ func (c *GroupClient) fetchPage(ctx context.Context, groupID, page int) ([]model
 
 	var result outerResp
 	op := func() error {
-		url := fmt.Sprintf("%s/ai/groups/%d/message?page=%d", c.baseURL, groupID, page)
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		requestURL := c.buildURL(c.groupMessages, map[string]string{
+			"group_id": url.PathEscape(fmt.Sprint(groupID)),
+			"page":     url.QueryEscape(fmt.Sprint(page)),
+		})
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
 		if err != nil {
 			return backoff.Permanent(err)
 		}
@@ -138,6 +150,17 @@ func (c *GroupClient) fetchPage(ctx context.Context, groupID, page int) ([]model
 		totalPages = 1
 	}
 	return result.Data.Data, totalPages, nil
+}
+
+func (c *GroupClient) buildURL(template string, values map[string]string) string {
+	result := template
+	for key, value := range values {
+		result = strings.ReplaceAll(result, "{"+key+"}", value)
+	}
+	if strings.HasPrefix(result, "http://") || strings.HasPrefix(result, "https://") {
+		return result
+	}
+	return c.baseURL + "/" + strings.TrimLeft(result, "/")
 }
 
 // newDefaultBackOff 创建统一的指数退避策略：1s→2s→4s→8s，最长 30s。
